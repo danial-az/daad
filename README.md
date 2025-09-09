@@ -149,9 +149,101 @@ function drawGravityDemo() {
 - معادلات دینامیکی آونگ ساده به‌صورت زیر پیاده‌سازی شده است:  
 
 ```javascript
-let angularAcc = (-gravity / p.length) * sin(p.angle); // شتاب زاویه‌ای
-p.angularVel += angularAcc; // سرعت زاویه‌ای
-p.angle += p.angularVel;    // زاویه آونگ
+function drawPendulumDemo() {
+            for(let p of pendulums) {
+                // محاسبه نیروها
+                let gravity = 0.4;
+                let angularAcc = (-gravity / p.length) * sin(p.angle);
+                
+                p.angularVel += angularAcc;
+                p.angularVel *= 0.999; // میرایی بسیار کم برای حفظ انرژی
+                p.angle += p.angularVel;
+                
+                // موقعیت وزنه
+                let bobX = p.x + p.length * sin(p.angle);
+                let bobY = p.y + p.length * cos(p.angle);
+                
+                // رسم ریسمان
+                stroke(200, 200, 200);
+                strokeWeight(2);
+                line(p.x, p.y, bobX, bobY);
+                
+                // رسم مسیر (قوس دایره)
+                stroke(p.color[0], p.color[1], p.color[2], 50);
+                strokeWeight(1);
+                noFill();
+                let startAngle = -PI/3;
+                let endAngle = PI/3;
+                arc(p.x, p.y, p.length * 2, p.length * 2, startAngle, endAngle);
+                
+                // نقطه تکیه
+                fill(100);
+                noStroke();
+                ellipse(p.x, p.y, 8, 8);
+                
+                // وزنه
+                fill(p.color[0], p.color[1], p.color[2]);
+                ellipse(bobX, bobY, 20, 20);
+                
+                // محاسبه انرژی‌ها (فیزیک صحیح)
+                let mass = 1; // جرم واحد
+                let g = 0.4;  // شتاب جاذبه
+                
+                // انرژی جنبشی: KE = 0.5 * m * (L * ω)²
+                let linearVelocity = abs(p.angularVel * p.length);
+                let ke = 0.5 * mass * linearVelocity * linearVelocity;
+                
+                // انرژی پتانسیل: PE = mgh = mg * L * (1 - cos(θ))
+                let height = p.length * (1 - cos(p.angle));
+                let pe = mass * g * height;
+                
+                // انرژی کل
+                let totalEnergy = ke + pe;
+                
+                // نمایش انرژی‌ها
+                fill(255);
+                textAlign(CENTER);
+                textSize(11);
+                text(`KE: ${ke.toFixed(2)}`, p.x, p.y + p.length + 30);
+                text(`PE: ${pe.toFixed(2)}`, p.x, p.y + p.length + 45);
+                text(`Total: ${totalEnergy.toFixed(2)}`, p.x, p.y + p.length + 60);
+                
+                // نمایش نوار انرژی
+                let barWidth = 60;
+                let barHeight = 8;
+                let barY = p.y + p.length + 75;
+                
+                // نوار کل انرژی (زمینه)
+                fill(50);
+                rect(p.x - barWidth/2, barY, barWidth, barHeight);
+                
+                if(totalEnergy > 0) {
+                    // نوار انرژی جنبشی (قرمز)
+                    fill(255, 100, 100);
+                    let keWidth = (ke / totalEnergy) * barWidth;
+                    rect(p.x - barWidth/2, barY, keWidth, barHeight);
+                    
+                    // نوار انرژی پتانسیل (آبی)
+                    fill(100, 100, 255);
+                    let peWidth = (pe / totalEnergy) * barWidth;
+                    rect(p.x - barWidth/2 + keWidth, barY, peWidth, barHeight);
+                }
+                
+                // قاب نوار
+                noFill();
+                stroke(255);
+                rect(p.x - barWidth/2, barY, barWidth, barHeight);
+            }
+            
+            // اطلاعات بقای انرژی
+            fill(255);
+            textAlign(LEFT);
+            textSize(14);
+            text('⚖️ قانون بقای انرژی: KE + PE = ثابت', 20, 30);
+            text('🔴 قرمز: انرژی جنبشی (KE)', 20, 50);
+            text('🔵 آبی: انرژی پتانسیل (PE)', 20, 70);
+            text('کلیک نزدیک آونگ برای اختلال', 20, 90);
+        }
 ```
 
 - انرژی‌ها نیز محاسبه و نمایش داده می‌شوند:  
@@ -168,9 +260,43 @@ p.angle += p.angularVel;    // زاویه آونگ
 - امواج با استفاده از توابع سینوسی رسم شده‌اند:  
 
 ```javascript
-let y = height/2 + wave.amplitude * sin(
-           x * wave.frequency + wave.phase + frameCount * wave.speed
-         );
+function drawWavesDemo() {
+            // گرادیانت پس‌زمینه
+            for(let i = 0; i <= height; i++) {
+                let alpha = map(i, 0, height, 0, 1);
+                let c = lerpColor(color(50, 100, 200), color(20, 50, 100), alpha);
+                stroke(c);
+                line(0, i, width, i);
+            }
+            
+            // رسم امواج
+            for(let w = 0; w < waves.length; w++) {
+                let wave = waves[w];
+                
+                fill(255, 255, 255, 100 - w * 20);
+                noStroke();
+                
+                beginShape();
+                vertex(0, height);
+                
+                for(let x = 0; x <= width; x += 3) {
+                    let y = height/2 + wave.amplitude * sin(x * wave.frequency + wave.phase + frameCount * wave.speed);
+                    vertex(x, y);
+                }
+                
+                vertex(width, height);
+                endShape(CLOSE);
+                
+                wave.phase += wave.speed;
+            }
+            
+            // نمایش معادله موج
+            fill(255);
+            textAlign(LEFT);
+            textSize(14);
+            text('معادله موج: y = A × sin(fx + φ + t)', 20, 30);
+            text(`A: دامنه، f: فرکانس، φ: فاز، t: زمان`, 20, 50);
+        }
 ```
 
 - برای طبیعی‌تر شدن، چند لایه موج با دامنه و سرعت‌های متفاوت روی هم ترسیم شده‌اند.  
@@ -187,25 +313,50 @@ y = A × sin(fx + φ + t)
 - ذرات به صورت تصادفی تولید می‌شوند:  
 
 ```javascript
-particles.push({
-  x: width/2 + random(-20, 20),
-  y: height - 50,
-  vx: random(-3, 3),
-  vy: random(-8, -3),
-  life: 255,
-  size: random(3, 8)
-});
+function drawParticlesDemo() {
+            // تولید ذرات جدید
+            if(frameCount % 3 == 0) {
+                particles.push({
+                    x: width/2 + random(-20, 20),
+                    y: height - 50,
+                    vx: random(-3, 3),
+                    vy: random(-8, -3),
+                    life: 255,
+                    size: random(3, 8),
+                    color: [random(200, 255), random(100, 200), random(50, 150)]
+                });
+            }
+            
+            // به‌روزرسانی ذرات
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                
+                // فیزیک
+                p.vy += 0.1; // جاذبه
+                p.vx *= 0.99; // مقاومت هوا
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 3;
+                
+                // رسم
+                let alpha = map(p.life, 0, 255, 0, 255);
+                fill(p.color[0], p.color[1], p.color[2], alpha);
+                noStroke();
+                ellipse(p.x, p.y, p.size, p.size);
+                
+                // حذف ذرات مرده
+                if(p.life <= 0 || p.y > height) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // نمایش منبع
+            fill(255, 200, 0);
+            ellipse(width/2, height - 50, 15, 15);
+        }
 ```
 
-- سپس در هر فریم تحت اثر جاذبه و مقاومت هوا حرکت می‌کنند:  
 
-```javascript
-p.vy += 0.1;  // جاذبه
-p.vx *= 0.99; // مقاومت هوا
-p.x += p.vx;
-p.y += p.vy;
-p.life -= 3;  // کاهش عمر ذره
-```
 
 - پس از پایان عمر (`life <= 0`) ذره حذف می‌شود.  
 
@@ -216,21 +367,38 @@ p.life -= 3;  // کاهش عمر ذره
 - الگوریتم بازگشتی برای ترسیم درخت فراکتال به‌کار رفته است:  
 
 ```javascript
-function branch(len) {
-  line(0, 0, 0, -len);
-  translate(0, -len);
-  if(len > 4) {
-    push();
-    rotate(angle);
-    branch(len * 0.67); // شاخه سمت راست
-    pop();
+function drawFractalDemo() {
+            translate(width/2, height - 50);
+            stroke(100, 255, 100);
+            strokeWeight(2);
+            
+            angle = map(mouseX, 0, width, 0, PI/2);
+            
+            branch(80);
+            
+            // اطلاعات
+            fill(255);
+            textAlign(LEFT);
+            text(`زاویه: ${(angle * 180 / PI).toFixed(1)}°`, -width/2 + 20, -height + 80);
+            text('حرکت ماوس برای تغییر زاویه', -width/2 + 20, -height + 100);
+        }
 
-    push();
-    rotate(-angle);
-    branch(len * 0.67); // شاخه سمت چپ
-    pop();
-  }
-}
+        function branch(len) {
+            line(0, 0, 0, -len);
+            translate(0, -len);
+            
+            if(len > 4) {
+                push();
+                rotate(angle);
+                branch(len * 0.67);
+                pop();
+                
+                push();
+                rotate(-angle);
+                branch(len * 0.67);
+                pop();
+            }
+        }
 ```
 
 - زاویه `angle` با حرکت ماوس تغییر می‌کند و باعث تغییر شکل درخت می‌شود.  
